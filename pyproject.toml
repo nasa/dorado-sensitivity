@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "dorado-sensitivity"
+version = "0.1.0"
+description = "Dorado sensitivity and exposure time calculator"
+authors = ["Brad Cenko <brad.cenko@nasa.gov>", "Leo Singer <leo.singer@ligo.org>"]
+license = "NOSA"
+packages = [
+    {include = "dorado"}]
+include = ["dorado/sensitivity/data/*.ecsv"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+astropy = "^4.1"
+pyyaml = "*"  # For reading and writing ECSV files
+synphot = "*"
+
+[tool.poetry.dev-dependencies]
+flake8 = "*"
+ipykernel = "*"
+matplotlib = "*"
+
+[tool.poetry.scripts]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
