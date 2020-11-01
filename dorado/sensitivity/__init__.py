@@ -2,7 +2,6 @@
 from astropy.stats import signal_to_noise_oir_ccd
 from astropy import units as u
 import numpy as np
-from scipy import optimize
 from synphot.exceptions import SynphotError
 from synphot import Observation, SourceSpectrum
 
@@ -112,11 +111,3 @@ def get_limmag(model, *, snr, exptime, coord, night, bandpass='D1'):
     ).to_value(u.dimensionless_unscaled)
 
     return -2.5 * np.log10(result) * u.ABmag
-
-    # def func(mag):
-    #     return get_snr(SourceSpectrum(model, amplitude=mag * u.ABmag),
-    #                    exptime=exptime, coord=coord, night=night,
-    #                    bandpass=bandpass) - snr
-
-    # result, = optimize.fsolve(func, 20.0)
-    # return result * u.ABmag
