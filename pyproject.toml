@@ -10,7 +10,6 @@ include = ["dorado/sensitivity/data/*.ecsv"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-astropy = "^4.1"
 pyyaml = "*"  # For reading and writing ECSV files
 synphot = "*"
 
