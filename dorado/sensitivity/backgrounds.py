@@ -12,7 +12,6 @@ import numpy as np
 from numpy import inf
 from scipy.interpolate import interp2d
 from synphot import Empirical1D, GaussianFlux1D, SourceSpectrum
-from synphot.models import Gaussian1D
 
 from . import constants
 from . import data
