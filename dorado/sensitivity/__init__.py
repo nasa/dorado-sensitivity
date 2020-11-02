@@ -9,7 +9,7 @@ from . import constants
 from . import bandpasses
 from . import backgrounds
 
-__all__ = ('get_snr',)
+__all__ = ('get_snr', 'get_limmag')
 
 
 def _get_count_rate(source_spectrum, bandpass):
