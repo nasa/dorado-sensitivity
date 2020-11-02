@@ -69,7 +69,7 @@ def _get_zodi_angular_dependence(coord):
 
     # Fix up shape
     if coord.isscalar:
-        result = np.asscalar(result)
+        result = result.item()
 
     # Done!
     return result
