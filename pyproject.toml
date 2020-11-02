@@ -15,8 +15,10 @@ synphot = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"
+hypothesis = "*"
 ipykernel = "*"
 matplotlib = "*"
+pytest = "*"
 
 [tool.poetry.scripts]
 
