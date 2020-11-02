@@ -9,7 +9,7 @@ from . import constants
 from . import bandpasses
 from . import backgrounds
 
-__all__ = ('get_snr', 'get_limmag')
+__all__ = ('get_snr', 'get_limmag', 'get_exptime')
 
 
 def _get_count_rate(source_spectrum, bandpass):
@@ -112,3 +112,52 @@ def get_limmag(model, *, snr, exptime, coord, night, bandpass='D1'):
     ).to_value(u.dimensionless_unscaled)
 
     return -2.5 * np.log10(result) * u.ABmag
+
+
+def _exptime_for_signal_to_noise_oir_ccd(
+        snr, source_eps, sky_eps, dark_eps, rd, npix, gain=1.0):
+    """Inverse of astropy.stats.signal_to_noise_oir_ccd."""
+    c1 = source_eps * gain
+    c2 = npix * (sky_eps * gain + dark_eps)
+    c3 = npix * np.square(rd)
+    x = 1 + c2 / c1
+    snr2 = np.square(snr)
+    return 0.5 * snr2 / c1 * (x + np.sqrt(np.square(x) + 4 * c3 / snr2))
+
+
+def get_exptime(source_spectrum, *, snr, coord, night, bandpass='D1'):
+    """Calculate the SNR of an observation of a point source with Dorado.
+
+    Parameters
+    ----------
+    source_spectrum : synphot.SourceSpectrum
+        The spectrum of the source.
+    snr : float
+        The signal to noise ratio
+    coord : astropy.coordinates.SkyCoord
+        The coordinates of the source, for calculating zodiacal light
+    night : bool
+        Whether the observation occurs on the day or night side of the Earth,
+        for estimating airglow
+    bandpass : synphot.SpectralElement
+        The bandpass (default: D1 filter)
+
+    Returns
+    -------
+    astropy.units.Quantity
+        The exposure time
+    """
+    if bandpass == 'D1':
+        bandpass = bandpasses.D1
+
+    return _exptime_for_signal_to_noise_oir_ccd(
+        snr,
+        _get_count_rate(source_spectrum, bandpass),
+        (
+            _get_count_rate(backgrounds.get_zodiacal_light(coord), bandpass) +
+            _get_count_rate(backgrounds.get_airglow(night), bandpass)
+        ),
+        constants.DARK_NOISE,
+        constants.READ_NOISE,
+        constants.NPIX
+    )
