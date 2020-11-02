@@ -66,8 +66,9 @@ def _amp_for_signal_to_noise_oir_ccd(
     """Inverse of astropy.stats.signal_to_noise_oir_ccd."""
     signal = t * source_eps * gain
     # noise squared without signal shot noise term
-    noise2 = t * (npix * (sky_eps * gain + dark_eps)) + npix * rd ** 2
-    return 0.5 * snr**2 / signal * (1 + np.sqrt(1 + 4 * noise2 / snr**2))
+    snr2 = np.square(snr)
+    noise2 = t * (npix * (sky_eps * gain + dark_eps)) + npix * np.square(rd)
+    return 0.5 * snr2 / signal * (1 + np.sqrt(1 + 4 * noise2 / snr2))
 
 
 def get_limmag(model, *, snr, exptime, coord, night, bandpass='D1'):
