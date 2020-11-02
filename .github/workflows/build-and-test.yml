@@ -21,10 +21,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install Python package
+      run: pip install .
     - name: Lint with flake8
       run: |
         pip install flake8
         flake8 . --count --exit-zero --show-source --statistics
-    - name: Install Python package
-      run: pip install .
-  
+    - name: Test with pytest
+      run: |
+        pip install pytest hypothesis
+        pytest
