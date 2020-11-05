@@ -1,11 +1,7 @@
 """Sky backgrounds."""
 from importlib import resources
-from warnings import warn
 
-from astropy.coordinates import (GeocentricMeanEcliptic,
-                                 HeliocentricMeanEcliptic,
-                                 SkyCoord)
-from astropy.coordinates.errors import UnitsError
+from astropy.coordinates import GeocentricTrueEcliptic, get_sun, SkyCoord
 from astropy.table import QTable
 from astropy import units as u
 import numpy as np
@@ -47,31 +43,26 @@ _stis_zodi_high = SourceSpectrum(
 del data
 
 
-def _get_zodi_angular_dependence(coord):
-    try:
-        coord = SkyCoord(coord).transform_to(HeliocentricMeanEcliptic)
-    except UnitsError:
-        warn('Supplied coordinates do not have a distance; '
-             'asssuming they describe a fixed star for purpose of conversion '
-             'to heliocentric coordinates')
-        coord = SkyCoord(coord).transform_to(GeocentricMeanEcliptic)
+def _get_zodi_angular_dependence(coord, time):
+    obj = SkyCoord(coord).transform_to(GeocentricTrueEcliptic(equinox=time))
+    sun = get_sun(time).transform_to(GeocentricTrueEcliptic(equinox=time))
 
     # Wrap angles and look up in table
-    lat = np.abs(coord.lat.deg)
-    lon = np.abs(coord.lon.wrap_at(180 * u.deg).deg)
+    lat = np.abs(obj.lat.deg)
+    lon = np.abs((obj.lon - sun.lon).wrap_at(180 * u.deg).deg)
     result = _stis_zodi_angular_dependence(lat, lon)
 
     # When interp2d encounters infinities, it returns nan. Fix that up here.
     result = np.where(np.isnan(result), -np.inf, result)
 
     # Fix up shape
-    if coord.isscalar:
+    if obj.isscalar:
         result = result.item()
 
     return result - _stis_zodi_angular_dependence(0, 180).item()
 
 
-def get_zodiacal_light(coord):
+def get_zodiacal_light(coord, time):
     """Get the zodiacal light spectrum incident on one pixel.
 
     Estimate the zodiacal light spectrum based on the angular dependence
@@ -84,6 +75,8 @@ def get_zodiacal_light(coord):
         not specify a distance, then the object is assumed to be a fixed star
         at infinite distance for the purpose of calculating its helioecliptic
         position.
+    time : astropy.time.Time
+        The time of the observation.
 
     Returns
     -------
@@ -95,7 +88,7 @@ def get_zodiacal_light(coord):
     https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
 
     """
-    scale = u.mag(1).to_physical(_get_zodi_angular_dependence(coord))
+    scale = u.mag(1).to_physical(_get_zodi_angular_dependence(coord, time))
     scale *= ((constants.PLATE_SCALE * u.pix)**2).to_value(u.arcsec**2)
     return _stis_zodi_high * scale
 
