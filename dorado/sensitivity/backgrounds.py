@@ -36,8 +36,6 @@ sb = np.asarray([[22.1, 22.4, 22.7, 23.0, 23.2, 23.4, 23.3],
                  [-inf, -inf, -inf, -inf, 22.6, 23.0, 23.3],
                  [-inf, -inf, -inf, -inf, 22.6, 23.0, 23.3]])
 _stis_zodi_angular_dependence = interp2d(lat, lon, sb, bounds_error=True)
-_stis_zodi_high_coord = SkyCoord(180*u.deg, 0*u.deg,
-                                 frame=HeliocentricMeanEcliptic)
 del lat, lon, sb
 
 # Read zodiacal light spectrum
@@ -71,8 +69,7 @@ def _get_zodi_angular_dependence(coord):
     if coord.isscalar:
         result = result.item()
 
-    # Done!
-    return result
+    return result - _stis_zodi_angular_dependence(0, 180).item()
 
 
 def get_zodiacal_light(coord):
@@ -99,9 +96,7 @@ def get_zodiacal_light(coord):
     https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
 
     """
-    zodi_mag = _get_zodi_angular_dependence(coord)
-    zodi_mag_high = _get_zodi_angular_dependence(_stis_zodi_high_coord)
-    scale = u.mag(1).to_physical(zodi_mag - zodi_mag_high)
+    scale = u.mag(1).to_physical(_get_zodi_angular_dependence(coord))
     scale *= ((constants.PLATE_SCALE * u.pix)**2).to_value(u.arcsec**2)
     return _stis_zodi_high * scale
 
