@@ -23,7 +23,7 @@ def _get_count_rate(source_spectrum, bandpass):
             raise
 
 
-def get_snr(source_spectrum, *, exptime, coord, night, bandpass='D1'):
+def get_snr(source_spectrum, *, exptime, coord, time, night, bandpass='D1'):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -34,6 +34,8 @@ def get_snr(source_spectrum, *, exptime, coord, night, bandpass='D1'):
         The exposure time
     coord : astropy.coordinates.SkyCoord
         The coordinates of the source, for calculating zodiacal light
+    time : astropy.time.Time
+        The time of the observation, for calculating zodiacal light
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
@@ -52,7 +54,7 @@ def get_snr(source_spectrum, *, exptime, coord, night, bandpass='D1'):
         exptime,
         _get_count_rate(source_spectrum, bandpass),
         (
-            _get_count_rate(backgrounds.get_zodiacal_light(coord), bandpass) +
+            _get_count_rate(backgrounds.get_zodiacal_light(coord, time), bandpass) +
             _get_count_rate(backgrounds.get_airglow(night), bandpass)
         ),
         constants.DARK_NOISE,
@@ -71,7 +73,7 @@ def _amp_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / signal * (1 + np.sqrt(1 + 4 * noise2 / snr2))
 
 
-def get_limmag(model, *, snr, exptime, coord, night, bandpass='D1'):
+def get_limmag(model, *, snr, exptime, coord, time, night, bandpass='D1'):
     """Get the limiting magnitude for a given SNR.
 
     Parameters
@@ -84,6 +86,8 @@ def get_limmag(model, *, snr, exptime, coord, night, bandpass='D1'):
         The exposure time
     coord : astropy.coordinates.SkyCoord
         The coordinates of the source, for calculating zodiacal light
+    time : astropy.time.Time
+        The time of the observation, for calculating zodiacal light
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
@@ -103,7 +107,7 @@ def get_limmag(model, *, snr, exptime, coord, night, bandpass='D1'):
         exptime,
         _get_count_rate(SourceSpectrum(model, amplitude=0*u.ABmag), bandpass),
         (
-            _get_count_rate(backgrounds.get_zodiacal_light(coord), bandpass) +
+            _get_count_rate(backgrounds.get_zodiacal_light(coord, time), bandpass) +
             _get_count_rate(backgrounds.get_airglow(night), bandpass)
         ),
         constants.DARK_NOISE,
@@ -125,7 +129,7 @@ def _exptime_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / c1 * (x + np.sqrt(np.square(x) + 4 * c3 / snr2))
 
 
-def get_exptime(source_spectrum, *, snr, coord, night, bandpass='D1'):
+def get_exptime(source_spectrum, *, snr, coord, time, night, bandpass='D1'):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -136,6 +140,8 @@ def get_exptime(source_spectrum, *, snr, coord, night, bandpass='D1'):
         The signal to noise ratio
     coord : astropy.coordinates.SkyCoord
         The coordinates of the source, for calculating zodiacal light
+    time : astropy.time.Time
+        The time of the observation, for calculating zodiacal light
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
@@ -154,7 +160,7 @@ def get_exptime(source_spectrum, *, snr, coord, night, bandpass='D1'):
         snr,
         _get_count_rate(source_spectrum, bandpass),
         (
-            _get_count_rate(backgrounds.get_zodiacal_light(coord), bandpass) +
+            _get_count_rate(backgrounds.get_zodiacal_light(coord, time), bandpass) +
             _get_count_rate(backgrounds.get_airglow(night), bandpass)
         ),
         constants.DARK_NOISE,
