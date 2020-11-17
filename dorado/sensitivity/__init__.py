@@ -5,9 +5,9 @@ import numpy as np
 from synphot.exceptions import SynphotError
 from synphot import Observation, SourceSpectrum
 
-from . import constants
-from . import bandpasses
 from . import backgrounds
+from . import bandpasses
+from . import constants
 
 __all__ = ('get_snr', 'get_limmag', 'get_exptime')
 
