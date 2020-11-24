@@ -9,7 +9,8 @@ Notes
 -----
 This is a fictitious area that is only used for converting effective area to
 synphot dimensionless units. It is only equal to the actual collecting area of
-the telescope to within an order of magnitude."""
+the telescope to within an order of magnitude.
+"""
 
 PLATE_SCALE = 25.0 * u.arcsec * u.pix**-1
 """Plate scale.
