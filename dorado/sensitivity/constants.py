@@ -20,16 +20,21 @@ Notes
 Assuing a fixed focal length and 2x2 binning.
 """
 
-NPIX = np.pi * 0.80**2 * 0.70
+NPIX = np.pi * 0.80**2
 """Effective number of pixels in a circular aperture.
 
 Notes
 -----
-For simplicity, use the current CBE spot radius = 24.1um
-and 70% of energy within this radius.
+For simplicity, use the current CBE spot radius = 24.1um.
 
 From DesignComparisons-20201008.sbc.xls,
 24.1 um = 20.1" = 0.80 pix
+"""
+
+APERTURE_CORRECTION = 0.7
+"""Aperture correction.
+
+70% of the signal from a point source falls within the above circular aperture.
 """
 
 DARK_NOISE = 4. * 30. * 0.124 * u.hour**-1

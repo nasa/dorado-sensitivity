@@ -52,7 +52,7 @@ def get_snr(source_spectrum, *, exptime, coord, time, night, bandpass='D1'):
 
     return signal_to_noise_oir_ccd(
         exptime,
-        _get_count_rate(source_spectrum, bandpass),
+        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum, bandpass),
         (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time), bandpass) +
             _get_count_rate(backgrounds.get_airglow(night), bandpass)
@@ -105,7 +105,7 @@ def get_limmag(model, *, snr, exptime, coord, time, night, bandpass='D1'):
     result = _amp_for_signal_to_noise_oir_ccd(
         snr,
         exptime,
-        _get_count_rate(SourceSpectrum(model, amplitude=0*u.ABmag), bandpass),
+        constants.APERTURE_CORRECTION * _get_count_rate(SourceSpectrum(model, amplitude=0*u.ABmag), bandpass),
         (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time), bandpass) +
             _get_count_rate(backgrounds.get_airglow(night), bandpass)
@@ -158,7 +158,7 @@ def get_exptime(source_spectrum, *, snr, coord, time, night, bandpass='D1'):
 
     return _exptime_for_signal_to_noise_oir_ccd(
         snr,
-        _get_count_rate(source_spectrum, bandpass),
+        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum, bandpass),
         (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time), bandpass) +
             _get_count_rate(backgrounds.get_airglow(night), bandpass)
