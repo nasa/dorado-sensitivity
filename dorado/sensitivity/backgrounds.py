@@ -102,7 +102,7 @@ def get_airglow(night):
     Parameters
     ----------
     night : bool
-        Use the "low" value if True, or the "high" value if False.
+        Use the "low" value if True, or the "average" value if False.
 
     Returns
     -------
@@ -114,7 +114,7 @@ def get_airglow(night):
     https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
 
     """
-    flux = 1.5e-17 if night else 3e-15
+    flux = 1.5e-17 if night else 1.5e-15
     flux *= u.erg * u.s**-1 * u.cm**-2 * u.arcsec**-2
     flux *= (constants.PLATE_SCALE * u.pix)**2
     return SourceSpectrum(GaussianFlux1D,
