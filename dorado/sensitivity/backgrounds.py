@@ -5,7 +5,6 @@ from astropy.coordinates import GeocentricTrueEcliptic, get_sun, SkyCoord
 from astropy.table import QTable
 from astropy import units as u
 import numpy as np
-from numpy import inf
 from scipy.interpolate import interp2d
 from synphot import Empirical1D, GaussianFlux1D, SourceSpectrum
 
@@ -14,24 +13,30 @@ from . import data
 
 __all__ = ('get_zodiacal_light', 'get_airglow')
 
-# Zodiacal light angular dependence from Table 6.2 of
-# https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
-_stis_zodi_angular_dependence = interp2d(
-    np.arange(0, 105, 15), np.arange(180, -15, -15),
-    [[22.1, 22.4, 22.7, 23.0, 23.2, 23.4, 23.3],
-     [22.3, 22.5, 22.8, 23.0, 23.2, 23.4, 23.3],
-     [22.4, 22.6, 22.9, 23.1, 23.3, 23.4, 23.3],
-     [22.4, 22.6, 22.9, 23.2, 23.3, 23.4, 23.3],
-     [22.4, 22.6, 22.9, 23.2, 23.3, 23.3, 23.3],
-     [22.2, 22.5, 22.9, 23.1, 23.3, 23.3, 23.3],
-     [22.0, 22.3, 22.7, 23.0, 23.2, 23.3, 23.3],
-     [21.7, 22.2, 22.6, 22.9, 23.1, 23.2, 23.3],
-     [21.3, 21.9, 22.4, 22.7, 23.0, 23.2, 23.3],
-     [-inf, -inf, 22.1, 22.5, 22.9, 23.1, 23.3],
-     [-inf, -inf, -inf, 22.3, 22.7, 23.1, 23.3],
-     [-inf, -inf, -inf, -inf, 22.6, 23.0, 23.3],
-     [-inf, -inf, -inf, -inf, 22.6, 23.0, 23.3]],
-    bounds_error=True)
+
+def _get_zodi_angular_interp():
+    # Zodiacal light angular dependence from Table 16 of Leinert et al. (2017)
+    # https://doi.org/10.1051/aas:1998105.
+    with resources.path(data, 'leinert_zodi.txt') as p:
+        table = np.loadtxt(p)
+    lat = table[0, 1:]
+    lon = table[1:, 0]
+    s10 = table[1:, 1:]
+
+    # The table only extends up to a latitude of 75°. According to the paper,
+    # "Towards the ecliptic pole, the brightness as given above is 60 ± 3 S10."
+    lat = np.append(lat, 90)
+    s10 = np.append(s10, np.tile(60.0, (len(lon), 1)), axis=1)
+
+    # The table is in units of S10: the number of 10th magnitude stars per
+    # square degree. Convert to magnitude per square arcsecond.
+    sb = 10 - 2.5 * np.log10(s10 / 60**4)
+
+    return interp2d(lat, lon, sb, bounds_error=True)
+
+
+_zodi_angular_dependence = _get_zodi_angular_interp()
+
 
 # Read zodiacal light spectrum
 with resources.path(data, 'stis_zodi_high.ecsv') as p:
@@ -50,7 +55,7 @@ def _get_zodi_angular_dependence(coord, time):
     # Wrap angles and look up in table
     lat = np.abs(obj.lat.deg)
     lon = np.abs((obj.lon - sun.lon).wrap_at(180 * u.deg).deg)
-    result = _stis_zodi_angular_dependence(lat, lon)
+    result = _zodi_angular_dependence(lat, lon)
 
     # When interp2d encounters infinities, it returns nan. Fix that up here.
     result = np.where(np.isnan(result), -np.inf, result)
@@ -59,7 +64,7 @@ def _get_zodi_angular_dependence(coord, time):
     if obj.isscalar:
         result = result.item()
 
-    return result - _stis_zodi_angular_dependence(0, 180).item()
+    return result - _zodi_angular_dependence(0, 180).item()
 
 
 def get_zodiacal_light(coord, time):
