@@ -35,12 +35,12 @@ _stis_zodi_angular_dependence = interp2d(
 
 # Read zodiacal light spectrum
 with resources.path(data, 'stis_zodi_high.ecsv') as p:
-    data = QTable.read(p)
+    table = QTable.read(p)
 _stis_zodi_high = SourceSpectrum(
     Empirical1D,
-    points=data['wavelength'],
-    lookup_table=data['surface_brightness'] * u.arcsec**2)
-del data
+    points=table['wavelength'],
+    lookup_table=table['surface_brightness'] * u.arcsec**2)
+del table
 
 
 def _get_zodi_angular_dependence(coord, time):
