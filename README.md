@@ -4,7 +4,7 @@ Dorado is a proposed space mission for ultraviolet follow-up of gravitational
 wave events. This repository contains a simple sensitivity and exposure time
 calculator for Dorado.
 
-This packages can estimate the signal to noise, exposure time, or limiting
+This package can estimate the signal to noise, exposure time, or limiting
 magnitude for an astronomical source with a given spectrum using the [CCD
 signal to noise equation]. It models the following noise contributions:
 
