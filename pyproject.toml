@@ -25,6 +25,7 @@ pytest = "*"
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/dorado-science/dorado-sensitivity/issues"
+"Change Log" = "https://github.com/dorado-science/dorado-sensitivity/blob/master/CHANGES.md"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
