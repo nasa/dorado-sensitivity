@@ -16,7 +16,7 @@ signal to noise equation]. It models the following noise contributions:
 
 To install with [Pip]:
 
-    $ pip install git+https://github.com/dorado-science/dorado-sensitivity
+    $ pip install dorado-sensitivity
 
 ## Examples
 
