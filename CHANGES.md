@@ -1,5 +1,5 @@
 # Changelog
 
-## Version 0.1.0 (unreleased)
+## Version 0.1.0 (2020-01-11)
 
-- No changes yet.
+-   First public release.
