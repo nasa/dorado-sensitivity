@@ -14,7 +14,7 @@ from importlib import resources
 from . import constants
 from . import data
 
-__all__ = ('D1',)
+__all__ = ('NUV_D',)
 
 
 def _get_bandpass(name):
@@ -25,4 +25,4 @@ def _get_bandpass(name):
                            lookup_table=t['effective_area'] / constants.AREA)
 
 
-D1 = _get_bandpass('d1')
+NUV_D = _get_bandpass('nuv_d')

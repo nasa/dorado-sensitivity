@@ -19,8 +19,8 @@ from . import constants
 __all__ = ('get_snr', 'get_limmag', 'get_exptime')
 
 
-def _get_count_rate(source_spectrum, bandpass):
-    observation = Observation(source_spectrum, bandpass)
+def _get_count_rate(source_spectrum):
+    observation = Observation(source_spectrum, bandpasses.NUV_D)
     try:
         return observation.countrate(constants.AREA) / u.ct
     except SynphotError as e:
@@ -30,7 +30,7 @@ def _get_count_rate(source_spectrum, bandpass):
             raise
 
 
-def get_snr(source_spectrum, *, exptime, coord, time, night, bandpass='D1'):
+def get_snr(source_spectrum, *, exptime, coord, time, night):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -46,26 +46,18 @@ def get_snr(source_spectrum, *, exptime, coord, time, night, bandpass='D1'):
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
-    bandpass : synphot.SpectralElement
-        The bandpass (default: D1 filter)
 
     Returns
     -------
     float
         The signal to noise ratio
     """
-    if bandpass == 'D1':
-        bandpass = bandpasses.D1
-
     return signal_to_noise_oir_ccd(
         exptime,
-        constants.APERTURE_CORRECTION * _get_count_rate(
-            source_spectrum, bandpass),
+        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
         (
-            _get_count_rate(
-                backgrounds.get_zodiacal_light(coord, time), bandpass) +
-            _get_count_rate(
-                backgrounds.get_airglow(night), bandpass)
+            _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
+            _get_count_rate(backgrounds.get_airglow(night))
         ),
         constants.DARK_NOISE,
         constants.READ_NOISE,
@@ -83,7 +75,7 @@ def _amp_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / signal * (1 + np.sqrt(1 + 4 * noise2 / snr2))
 
 
-def get_limmag(model, *, snr, exptime, coord, time, night, bandpass='D1'):
+def get_limmag(model, *, snr, exptime, coord, time, night):
     """Get the limiting magnitude for a given SNR.
 
     Parameters
@@ -101,27 +93,20 @@ def get_limmag(model, *, snr, exptime, coord, time, night, bandpass='D1'):
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
-    bandpass : synphot.SpectralElement
-        The bandpass (default: D1 filter)
 
     Returns
     -------
     astropy.units.Quantity
         The AB magnitude of the source
     """
-    if bandpass == 'D1':
-        bandpass = bandpasses.D1
-
     result = _amp_for_signal_to_noise_oir_ccd(
         snr,
         exptime,
         constants.APERTURE_CORRECTION * _get_count_rate(
-            SourceSpectrum(model, amplitude=0*u.ABmag), bandpass),
+            SourceSpectrum(model, amplitude=0*u.ABmag)),
         (
-            _get_count_rate(
-                backgrounds.get_zodiacal_light(coord, time), bandpass) +
-            _get_count_rate(
-                backgrounds.get_airglow(night), bandpass)
+            _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
+            _get_count_rate(backgrounds.get_airglow(night))
         ),
         constants.DARK_NOISE,
         constants.READ_NOISE,
@@ -142,7 +127,7 @@ def _exptime_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / c1 * (x + np.sqrt(np.square(x) + 4 * c3 / snr2))
 
 
-def get_exptime(source_spectrum, *, snr, coord, time, night, bandpass='D1'):
+def get_exptime(source_spectrum, *, snr, coord, time, night):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -158,26 +143,18 @@ def get_exptime(source_spectrum, *, snr, coord, time, night, bandpass='D1'):
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
-    bandpass : synphot.SpectralElement
-        The bandpass (default: D1 filter)
 
     Returns
     -------
     astropy.units.Quantity
         The exposure time
     """
-    if bandpass == 'D1':
-        bandpass = bandpasses.D1
-
     return _exptime_for_signal_to_noise_oir_ccd(
         snr,
-        constants.APERTURE_CORRECTION * _get_count_rate(
-            source_spectrum, bandpass),
+        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
         (
-            _get_count_rate(
-                backgrounds.get_zodiacal_light(coord, time), bandpass) +
-            _get_count_rate(
-                backgrounds.get_airglow(night), bandpass)
+            _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
+            _get_count_rate(backgrounds.get_airglow(night))
         ),
         constants.DARK_NOISE,
         constants.READ_NOISE,
