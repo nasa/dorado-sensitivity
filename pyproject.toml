@@ -4,8 +4,8 @@ version = "0.1.0"
 description = "Dorado sensitivity and exposure time calculator"
 authors = ["Brad Cenko <brad.cenko@nasa.gov>", "Leo Singer <leo.singer@ligo.org>"]
 license = "NOSA"
-homepage = "https://github.com/dorado-science/dorado-sensitivity"
-repository = "https://github.com/dorado-science/dorado-sensitivity"
+homepage = "https://github.com/nasa/dorado-sensitivity"
+repository = "https://github.com/nasa/dorado-sensitivity"
 packages = [{include = "dorado"}]
 include = ["dorado/sensitivity/data/*.ecsv", "dorado/sensitivity/data/*.txt"]
 
@@ -24,8 +24,8 @@ pytest = "*"
 [tool.poetry.scripts]
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/dorado-science/dorado-sensitivity/issues"
-"Change Log" = "https://github.com/dorado-science/dorado-sensitivity/blob/master/CHANGES.md"
+"Bug Tracker" = "https://github.com/nasa/dorado-sensitivity/issues"
+"Change Log" = "https://github.com/nasa/dorado-sensitivity/blob/master/CHANGES.md"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
