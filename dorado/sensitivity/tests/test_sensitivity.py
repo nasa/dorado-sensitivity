@@ -22,15 +22,14 @@ from .. import get_exptime, get_limmag, get_snr
     ra=just(0),
     dec=just(90),
     time=just(Time('2020-01-01')),
-    night=booleans(),
-    bandpass=just('D1'))
+    night=booleans())
 @settings(deadline=None)
-def test_round_trip_snr_limmag(snr, exptime, ra, dec, time, night, bandpass):
+def test_round_trip_snr_limmag(snr, exptime, ra, dec, time, night):
     """Test round trip: get_snr(get_limmag(...))"""
     kwargs = dict(
         exptime=exptime * u.s,
         coord=SkyCoord(ra * u.deg, dec * u.deg),
-        time=time, night=night, bandpass=bandpass)
+        time=time, night=night)
 
     limmag = get_limmag(ConstFlux1D, snr=snr, **kwargs)
     snr_2 = get_snr(SourceSpectrum(ConstFlux1D, amplitude=limmag), **kwargs)
@@ -43,15 +42,14 @@ def test_round_trip_snr_limmag(snr, exptime, ra, dec, time, night, bandpass):
     ra=just(0),
     dec=just(90),
     time=just(Time('2020-01-01')),
-    night=booleans(),
-    bandpass=just('D1'))
+    night=booleans())
 @settings(deadline=None)
-def test_round_trip_snr_exptime(snr, mag, ra, dec, time, night, bandpass):
+def test_round_trip_snr_exptime(snr, mag, ra, dec, time, night):
     """Test round trip: get_snr(get_limmag(...))"""
     source = SourceSpectrum(ConstFlux1D, amplitude=mag * u.ABmag)
     kwargs = dict(
         coord=SkyCoord(ra * u.deg, dec * u.deg),
-        night=night, time=time, bandpass=bandpass)
+        night=night, time=time)
 
     exptime = get_exptime(source, snr=snr, **kwargs)
     snr_2 = get_snr(source, exptime=exptime, **kwargs)
