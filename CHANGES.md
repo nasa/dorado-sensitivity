@@ -8,6 +8,6 @@
 -   Remove the ``bandpass`` argument for convenience, because Dorado has a
     single filter.
 
-## Version 0.1.0 (2020-01-11)
+## Version 0.1.0 (2021-01-11)
 
 -   First public release.
