@@ -6,6 +6,7 @@ authors = ["Brad Cenko <brad.cenko@nasa.gov>", "Leo Singer <leo.singer@ligo.org>
 license = "NOSA"
 homepage = "https://github.com/nasa/dorado-sensitivity"
 repository = "https://github.com/nasa/dorado-sensitivity"
+readme = "README.md"
 packages = [{include = "dorado"}]
 include = ["dorado/sensitivity/data/*.ecsv", "dorado/sensitivity/data/*.txt"]
 
