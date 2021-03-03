@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 0.2.0 (unreleased)
+## Version 0.2.0 (2021-03-03)
 
 -   Update the instrument characteristics with the values in the Dorado concept
     study report. The effective area and the spot size both increased slightly.
