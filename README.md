@@ -34,4 +34,4 @@ For examples, see the [Jupyter notebook].
 [Synphot]: https://synphot.readthedocs.io/
 [PyYAML]: https://pyyaml.org/
 [ECSV]: https://github.com/astropy/astropy-APEs/blob/master/APE6.rst
-[Jupyter notebook]: https://github.com/dorado-science/dorado-sensitivity/blob/master/example.ipynb
+[Jupyter notebook]: https://github.com/nasa/dorado-sensitivity/blob/master/example.ipynb
