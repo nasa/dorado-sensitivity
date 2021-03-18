@@ -10,7 +10,7 @@ from astropy.stats import signal_to_noise_oir_ccd
 from astropy import units as u
 import numpy as np
 from synphot.exceptions import SynphotError
-from synphot import Observation, SourceSpectrum
+from synphot import Observation
 
 from . import backgrounds
 from . import bandpasses
@@ -75,13 +75,13 @@ def _amp_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / signal * (1 + np.sqrt(1 + 4 * noise2 / snr2))
 
 
-def get_limmag(model, *, snr, exptime, coord, time, night):
+def get_limmag(source_spectrum, *, snr, exptime, coord, time, night):
     """Get the limiting magnitude for a given SNR.
 
     Parameters
     ----------
-    source_model : synphot.Model
-        The spectral model of the source.
+    source_spectrum : synphot.SourceSpectrum
+        The spectrum of the source.
     snr : float
         The desired SNR.
     exptime : astropy.units.Quantity
@@ -99,11 +99,13 @@ def get_limmag(model, *, snr, exptime, coord, time, night):
     astropy.units.Quantity
         The AB magnitude of the source
     """
+    mag0 = Observation(source_spectrum, bandpasses.NUV_D).effstim(
+        u.ABmag, area=constants.AREA)
+
     result = _amp_for_signal_to_noise_oir_ccd(
         snr,
         exptime,
-        constants.APERTURE_CORRECTION * _get_count_rate(
-            SourceSpectrum(model, amplitude=0*u.ABmag)),
+        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
         (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
             _get_count_rate(backgrounds.get_airglow(night))
@@ -113,7 +115,7 @@ def get_limmag(model, *, snr, exptime, coord, time, night):
         constants.NPIX
     ).to_value(u.dimensionless_unscaled)
 
-    return -2.5 * np.log10(result) * u.ABmag
+    return -2.5 * np.log10(result) * u.mag + mag0
 
 
 def _exptime_for_signal_to_noise_oir_ccd(

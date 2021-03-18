@@ -31,7 +31,8 @@ def test_round_trip_snr_limmag(snr, exptime, ra, dec, time, night):
         coord=SkyCoord(ra * u.deg, dec * u.deg),
         time=time, night=night)
 
-    limmag = get_limmag(ConstFlux1D, snr=snr, **kwargs)
+    limmag = get_limmag(
+        SourceSpectrum(ConstFlux1D, amplitude=0*u.ABmag), snr=snr, **kwargs)
     snr_2 = get_snr(SourceSpectrum(ConstFlux1D, amplitude=limmag), **kwargs)
     assert snr_2 == approx(snr)
 
