@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.3.0 (unreleased)
+
+-   No changes yet.
+
 ## Version 0.2.0 (2021-03-03)
 
 -   Update the instrument characteristics with the values in the Dorado concept
