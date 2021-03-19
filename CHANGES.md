@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 0.3.0 (unreleased)
+## Version 0.3.0 (2021-03-18)
 
 -   The ``get_limmag`` function now accepts ``synphot.SourceSpectrum``
     instance, rather than a spectral model class, for more consistency with the

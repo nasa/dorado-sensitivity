@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dorado-sensitivity"
-version = "0.2.0"
+version = "0.3.0"
 description = "Dorado sensitivity and exposure time calculator"
 authors = ["Brad Cenko <brad.cenko@nasa.gov>", "Leo Singer <leo.singer@ligo.org>"]
 license = "NOSA"
