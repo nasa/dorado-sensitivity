@@ -13,12 +13,13 @@ from astropy.table import QTable
 from astropy import units as u
 import numpy as np
 from scipy.interpolate import interp2d
-from synphot import Empirical1D, GaussianFlux1D, SourceSpectrum
+from synphot import Empirical1D, GaussianFlux1D, PowerLawFlux1D, SourceSpectrum
+from synphot.units import PHOTLAM
 
 from . import constants
 from . import data
 
-__all__ = ('get_zodiacal_light', 'get_airglow')
+__all__ = ('get_zodiacal_light', 'get_airglow', 'get_galactic')
 
 
 def _get_zodi_angular_interp():
@@ -133,3 +134,52 @@ def get_airglow(night):
                           mean=2471 * u.angstrom,
                           fwhm=0.023 * u.angstrom,
                           total_flux=flux)
+
+
+def get_galactic(coord):
+    """Get the Galactic diffuse emission incident on one pixel.
+
+    Estimate the Galactic diffuse emission based on the cosecant fits from
+    Murthy (2014).
+
+    Parameters
+    ----------
+    coord : astropy.coordinates.SkyCoord
+        The coordinates of the object under observation.
+
+    Returns
+    -------
+    synphot.SourceSpectrum
+        The Galactic diffuse emission spectrum, normalized to one pixel.
+
+    References
+    ----------
+    https://doi.org/10.3847/1538-4357/aabcb9
+
+    """
+    b = SkyCoord(coord).galactic.b
+    csc = 1 / np.sin(b)
+    pos = (csc > 0)
+
+    # Constants from Murthy (2014) Table 4.
+    # Note that slopes for the Southern hemisphere have been negated to cancel
+    # the minus sign in the Galactic latitude.
+    fuv_a = np.where(pos, 93.4, -205.5)
+    nuv_a = np.where(pos, 257.5, 66.7)
+    fuv_b = np.where(pos, 133.2, -401.8)
+    nuv_b = np.where(pos, 185.1, -356.3)
+
+    fuv = fuv_a + fuv_b * csc
+    nuv = nuv_a + nuv_b * csc
+    surf_bright_unit = PHOTLAM * u.steradian**-1
+
+    # GALEX filter effective wavelengths in angstroms from
+    # http://www.galex.caltech.edu/researcher/techdoc-ch1.html#3
+    fuv_wave = 1528
+    nuv_wave = 2271
+
+    return SourceSpectrum(
+        PowerLawFlux1D,
+        amplitude=fuv * surf_bright_unit * (constants.PLATE_SCALE * u.pix)**2,
+        x_0=fuv_wave * u.angstrom,
+        alpha=-np.log(nuv / fuv) / np.log(nuv_wave / fuv_wave))
