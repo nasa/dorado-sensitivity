@@ -9,8 +9,8 @@
 from astropy.stats import signal_to_noise_oir_ccd
 from astropy import units as u
 import numpy as np
-from synphot.exceptions import SynphotError
 from synphot import Observation
+from synphot.units import PHOTLAM
 
 from . import backgrounds
 from . import bandpasses
@@ -20,14 +20,8 @@ __all__ = ('get_snr', 'get_limmag', 'get_exptime')
 
 
 def _get_count_rate(source_spectrum):
-    observation = Observation(source_spectrum, bandpasses.NUV_D)
-    try:
-        return observation.countrate(constants.AREA) / u.ct
-    except SynphotError as e:
-        if e.args[0] == 'Integrated flux is infinite':
-            return np.inf * u.s**-1
-        else:
-            raise
+    flux = (source_spectrum * bandpasses.NUV_D).integrate(flux_unit=PHOTLAM)
+    return flux * (constants.AREA / u.ph)
 
 
 def get_snr(source_spectrum, *, exptime, coord, time, night):
