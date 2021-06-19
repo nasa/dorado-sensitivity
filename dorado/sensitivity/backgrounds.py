@@ -12,7 +12,7 @@ from astropy.coordinates import GeocentricTrueEcliptic, get_sun, SkyCoord
 from astropy.table import QTable
 from astropy import units as u
 import numpy as np
-from scipy.interpolate import interp2d
+from scipy.interpolate import RegularGridInterpolator
 from synphot import Empirical1D, GaussianFlux1D, PowerLawFlux1D, SourceSpectrum
 from synphot.units import PHOTLAM
 
@@ -39,7 +39,7 @@ def _get_zodi_angular_interp():
     # square degree. Convert to magnitude per square arcsecond.
     sb = 10 - 2.5 * np.log10(s10 / 60**4)
 
-    return interp2d(lat, lon, sb, bounds_error=True)
+    return RegularGridInterpolator([lon, lat], sb)
 
 
 _zodi_angular_dependence = _get_zodi_angular_interp()
@@ -62,7 +62,7 @@ def _get_zodi_angular_dependence(coord, time):
     # Wrap angles and look up in table
     lat = np.abs(obj.lat.deg)
     lon = np.abs((obj.lon - sun.lon).wrap_at(180 * u.deg).deg)
-    result = _zodi_angular_dependence(lat, lon)
+    result = _zodi_angular_dependence(np.stack((lon, lat), axis=-1))
 
     # When interp2d encounters infinities, it returns nan. Fix that up here.
     result = np.where(np.isnan(result), -np.inf, result)
@@ -71,7 +71,7 @@ def _get_zodi_angular_dependence(coord, time):
     if obj.isscalar:
         result = result.item()
 
-    return result - _zodi_angular_dependence(0, 180).item()
+    return result - _zodi_angular_dependence([180, 0]).item()
 
 
 def get_zodiacal_light(coord, time):
