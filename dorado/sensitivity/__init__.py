@@ -49,7 +49,7 @@ def get_snr(source_spectrum, *, exptime, coord, time, night):
     return signal_to_noise_oir_ccd(
         exptime,
         constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
-        (
+        np.square(constants.PLATE_SCALE.to_value(u.arcsec / u.pix)) * (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
             _get_count_rate(backgrounds.get_airglow(night))
         ),
@@ -100,7 +100,7 @@ def get_limmag(source_spectrum, *, snr, exptime, coord, time, night):
         snr,
         exptime,
         constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
-        (
+        np.square(constants.PLATE_SCALE.to_value(u.arcsec / u.pix)) * (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
             _get_count_rate(backgrounds.get_airglow(night))
         ),
@@ -148,7 +148,7 @@ def get_exptime(source_spectrum, *, snr, coord, time, night):
     return _exptime_for_signal_to_noise_oir_ccd(
         snr,
         constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
-        (
+        np.square(constants.PLATE_SCALE.to_value(u.arcsec / u.pix)) * (
             _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
             _get_count_rate(backgrounds.get_airglow(night))
         ),

@@ -16,7 +16,6 @@ from scipy.interpolate import interp2d
 from synphot import Empirical1D, GaussianFlux1D, PowerLawFlux1D, SourceSpectrum
 from synphot.units import PHOTLAM
 
-from . import constants
 from . import data
 
 __all__ = ('get_zodiacal_light', 'get_airglow', 'get_galactic')
@@ -76,7 +75,7 @@ def _get_zodi_angular_dependence(coord, time):
 
 
 def get_zodiacal_light(coord, time):
-    """Get the zodiacal light spectrum incident on one pixel.
+    """Get the zodiacal light spectrum normalized to 1 square arcsecond.
 
     Estimate the zodiacal light spectrum based on the angular dependence
     (Table 6.2) and wavelength (Table 6.4) from the STIS Instrument Manual.
@@ -94,7 +93,7 @@ def get_zodiacal_light(coord, time):
     Returns
     -------
     synphot.SourceSpectrum
-        The zodiacal light spectrum, normalized to one pixel.
+        The zodiacal light spectrum, normalized to 1 square arcsecond.
 
     References
     ----------
@@ -102,12 +101,11 @@ def get_zodiacal_light(coord, time):
 
     """
     scale = u.mag(1).to_physical(_get_zodi_angular_dependence(coord, time))
-    scale *= ((constants.PLATE_SCALE * u.pix)**2).to_value(u.arcsec**2)
     return _stis_zodi_high * scale
 
 
 def get_airglow(night):
-    """Get the airglow spectrum incident on one pixel.
+    """Get the airglow spectrum, normalized to 1 square arcsecond.
 
     Estimate the zodiacal light spectrum based on the [O II] geocoronal
     emission line (Table 6.5) in the STIS Instrument Manual.
@@ -120,16 +118,14 @@ def get_airglow(night):
     Returns
     -------
     synphot.SourceSpectrum
-        The airglow spectrum, normalized to one pixel.
+        The airglow spectrum, normalized to 1 square arcsecond.
 
     References
     ----------
     https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
 
     """
-    flux = 1.5e-17 if night else 1.5e-15
-    flux *= u.erg * u.s**-1 * u.cm**-2 * u.arcsec**-2
-    flux *= (constants.PLATE_SCALE * u.pix)**2
+    flux = np.where(night, 1.5e-17, 1.5e-15) * u.erg * u.s**-1 * u.cm**-2
     return SourceSpectrum(GaussianFlux1D,
                           mean=2471 * u.angstrom,
                           fwhm=0.023 * u.angstrom,
@@ -137,7 +133,7 @@ def get_airglow(night):
 
 
 def get_galactic(coord):
-    """Get the Galactic diffuse emission incident on one pixel.
+    """Get the Galactic diffuse emission, normalized to 1 square arcsecond.
 
     Estimate the Galactic diffuse emission based on the cosecant fits from
     Murthy (2014).
@@ -150,7 +146,8 @@ def get_galactic(coord):
     Returns
     -------
     synphot.SourceSpectrum
-        The Galactic diffuse emission spectrum, normalized to one pixel.
+        The Galactic diffuse emission spectrum, normalized to 1 square
+        arcsecond.
 
     References
     ----------
@@ -171,7 +168,7 @@ def get_galactic(coord):
 
     fuv = fuv_a + fuv_b * csc
     nuv = nuv_a + nuv_b * csc
-    surf_bright_unit = PHOTLAM * u.steradian**-1
+    surf_bright_unit = PHOTLAM * u.steradian**-1 * u.arcsec**2
 
     # GALEX filter effective wavelengths in angstroms from
     # http://www.galex.caltech.edu/researcher/techdoc-ch1.html#3
@@ -180,6 +177,6 @@ def get_galactic(coord):
 
     return SourceSpectrum(
         PowerLawFlux1D,
-        amplitude=fuv * surf_bright_unit * (constants.PLATE_SCALE * u.pix)**2,
+        amplitude=fuv * surf_bright_unit,
         x_0=fuv_wave * u.angstrom,
         alpha=-np.log(nuv / fuv) / np.log(nuv_wave / fuv_wave))
