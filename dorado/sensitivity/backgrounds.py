@@ -18,7 +18,8 @@ from synphot.units import PHOTLAM
 
 from . import data
 
-__all__ = ('get_zodiacal_light', 'get_airglow', 'get_galactic')
+__all__ = ('get_zodiacal_light_scale', 'high_zodiacal_light', 'get_airglow',
+           'get_galactic')
 
 
 def _get_zodi_angular_interp():
@@ -48,14 +49,48 @@ _zodi_angular_dependence = _get_zodi_angular_interp()
 # Read zodiacal light spectrum
 with resources.path(data, 'stis_zodi_high.ecsv') as p:
     table = QTable.read(p)
-_stis_zodi_high = SourceSpectrum(
+high_zodiacal_light = SourceSpectrum(
     Empirical1D,
     points=table['wavelength'],
     lookup_table=table['surface_brightness'] * u.arcsec**2)
-del table
+""""High" zodiacal light spectrum, normalized to 1 square arcsecond.
+
+The spectrum is from Table 6.4 of the STIS Instrument Manual.
+
+References
+----------
+https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
+
+"""
 
 
-def _get_zodi_angular_dependence(coord, time):
+def get_zodiacal_light_scale(coord, time):
+    """Get the scale factor for zodiacal light compared to "high" conditions.
+
+    Estimate the ratio between the zodiacal light at a specific sky position
+    and time, and its "high" value, by interpolating Table 6.2 of the STIS
+    Instrument Manual.
+
+    Parameters
+    ----------
+    coord : astropy.coordinates.SkyCoord
+        The coordinates of the object under observation. If the coordinates do
+        not specify a distance, then the object is assumed to be a fixed star
+        at infinite distance for the purpose of calculating its helioecliptic
+        position.
+    time : astropy.time.Time
+        The time of the observation.
+
+    Returns
+    -------
+    float
+        The zodiacal light scale factor.
+
+    References
+    ----------
+    https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
+
+    """
     obj = SkyCoord(coord).transform_to(GeocentricTrueEcliptic(equinox=time))
     sun = get_sun(time).transform_to(GeocentricTrueEcliptic(equinox=time))
 
@@ -71,37 +106,8 @@ def _get_zodi_angular_dependence(coord, time):
     if obj.isscalar:
         result = result.item()
 
-    return result - _zodi_angular_dependence([180, 0]).item()
-
-
-def get_zodiacal_light(coord, time):
-    """Get the zodiacal light spectrum normalized to 1 square arcsecond.
-
-    Estimate the zodiacal light spectrum based on the angular dependence
-    (Table 6.2) and wavelength (Table 6.4) from the STIS Instrument Manual.
-
-    Parameters
-    ----------
-    coord : astropy.coordinates.SkyCoord
-        The coordinates of the object under observation. If the coordinates do
-        not specify a distance, then the object is assumed to be a fixed star
-        at infinite distance for the purpose of calculating its helioecliptic
-        position.
-    time : astropy.time.Time
-        The time of the observation.
-
-    Returns
-    -------
-    synphot.SourceSpectrum
-        The zodiacal light spectrum, normalized to 1 square arcsecond.
-
-    References
-    ----------
-    https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
-
-    """
-    scale = u.mag(1).to_physical(_get_zodi_angular_dependence(coord, time))
-    return _stis_zodi_high * scale
+    result -= _zodi_angular_dependence([180, 0]).item()
+    return u.mag(1).to_physical(result)
 
 
 def get_airglow(night):
@@ -180,3 +186,6 @@ def get_galactic(coord):
         amplitude=fuv * surf_bright_unit,
         x_0=fuv_wave * u.angstrom,
         alpha=-np.log(nuv / fuv) / np.log(nuv_wave / fuv_wave))
+
+
+del _get_zodi_angular_interp, table

@@ -25,8 +25,9 @@ def _get_count_rate(source_spectrum):
 
 
 def _get_background_count_rate(coord, time, night):
+    zodi_scale = backgrounds.get_zodiacal_light_scale(coord, time)
     return np.square(constants.PLATE_SCALE.to_value(u.arcsec / u.pix)) * (
-        _get_count_rate(backgrounds.get_zodiacal_light(coord, time)) +
+        _get_count_rate(backgrounds.high_zodiacal_light) * zodi_scale +
         _get_count_rate(backgrounds.get_airglow(night))
     )
 
