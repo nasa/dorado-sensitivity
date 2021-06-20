@@ -10,6 +10,7 @@ signal to noise equation]. It models the following noise contributions:
 
 *   Zodiacal light
 *   Airglow (geocoronal emission)
+*   Diffuse Galactic emission
 *   Standard CCD noise (shot noise, read noise, dark current)
 
 ## Installation
