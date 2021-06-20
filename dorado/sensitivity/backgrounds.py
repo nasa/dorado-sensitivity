@@ -9,18 +9,17 @@
 from importlib import resources
 
 from astropy.coordinates import GeocentricTrueEcliptic, get_sun, SkyCoord
-from astropy.stats.funcs import gaussian_fwhm_to_sigma
 from astropy.table import QTable
 from astropy import units as u
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from synphot import Empirical1D, Gaussian1D, PowerLawFlux1D, SourceSpectrum
+from synphot import Empirical1D, GaussianFlux1D, PowerLawFlux1D, SourceSpectrum
 from synphot.units import PHOTLAM
 
 from . import data
 
-__all__ = ('get_zodiacal_light_scale', 'high_zodiacal_light', 'get_airglow',
-           'get_galactic')
+__all__ = ('get_zodiacal_light_scale', 'high_zodiacal_light', 'day_airglow',
+           'get_airglow_scale', 'get_galactic')
 
 
 def _get_zodi_angular_interp():
@@ -111,11 +110,18 @@ def get_zodiacal_light_scale(coord, time):
     return u.mag(1).to_physical(result)
 
 
-def get_airglow(night):
-    """Get the airglow spectrum, normalized to 1 square arcsecond.
+day_airglow = SourceSpectrum(
+    GaussianFlux1D,
+    mean=2471 * u.angstrom,
+    fwhm=0.023 * u.angstrom,
+    total_flux=1.5e-15 * u.erg * u.s**-1 * u.cm**-2)
+"""Airglow spectrum in daytime, normalized to 1 square arcsecond."""
 
-    Estimate the zodiacal light spectrum based on the [O II] geocoronal
-    emission line (Table 6.5) in the STIS Instrument Manual.
+
+def get_airglow_scale(night):
+    """Get the scale factor for the airglow spectrum.
+
+    Estimate the ratio between the airglow and its daytime value.
 
     Parameters
     ----------
@@ -124,25 +130,15 @@ def get_airglow(night):
 
     Returns
     -------
-    synphot.SourceSpectrum
-        The airglow spectrum, normalized to 1 square arcsecond.
+    scale : float
+        The airglow scale factor.
 
     References
     ----------
     https://hst-docs.stsci.edu/stisihb/chapter-6-exposure-time-calculations/6-5-detector-and-sky-backgrounds
 
     """
-    flux = np.where(night, 1.5e-17, 1.5e-15) * u.erg * u.s**-1 * u.cm**-2
-    x_0 = 2471 * u.angstrom
-    fwhm = 0.023 * u.angstrom
-    stdev = fwhm * gaussian_fwhm_to_sigma
-    # FIXME: use Gaussian1D instead of GaussianFlux1D
-    # because GaussianFlux1D does not broadcast properly.
-    return SourceSpectrum(
-        Gaussian1D,
-        mean=x_0,
-        stddev=stdev,
-        amplitude=flux / (np.sqrt(2 * np.pi) * stdev))
+    return np.where(night, 1e-2, 1)
 
 
 def get_galactic(coord):
