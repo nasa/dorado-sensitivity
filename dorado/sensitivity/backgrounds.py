@@ -9,11 +9,12 @@
 from importlib import resources
 
 from astropy.coordinates import GeocentricTrueEcliptic, get_sun, SkyCoord
+from astropy.stats.funcs import gaussian_fwhm_to_sigma
 from astropy.table import QTable
 from astropy import units as u
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from synphot import Empirical1D, GaussianFlux1D, PowerLawFlux1D, SourceSpectrum
+from synphot import Empirical1D, Gaussian1D, PowerLawFlux1D, SourceSpectrum
 from synphot.units import PHOTLAM
 
 from . import data
@@ -132,10 +133,16 @@ def get_airglow(night):
 
     """
     flux = np.where(night, 1.5e-17, 1.5e-15) * u.erg * u.s**-1 * u.cm**-2
-    return SourceSpectrum(GaussianFlux1D,
-                          mean=2471 * u.angstrom,
-                          fwhm=0.023 * u.angstrom,
-                          total_flux=flux)
+    x_0 = 2471 * u.angstrom
+    fwhm = 0.023 * u.angstrom
+    stdev = fwhm * gaussian_fwhm_to_sigma
+    # FIXME: use Gaussian1D instead of GaussianFlux1D
+    # because GaussianFlux1D does not broadcast properly.
+    return SourceSpectrum(
+        Gaussian1D,
+        mean=x_0,
+        stddev=stdev,
+        amplitude=flux / (np.sqrt(2 * np.pi) * stdev))
 
 
 def get_galactic(coord):
