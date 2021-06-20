@@ -20,8 +20,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy"]
 
 [tool.poetry.dependencies]
+dustmaps = ">=1.0.8"  # GNILC was added in this version
+dust_extinction = ">=0.8"  # F19 was added in this version
 python = "^3.7"
 pyyaml = "*"  # For reading and writing ECSV files
+scipy = "*"
 synphot = "*"
 
 [tool.poetry.dev-dependencies]

@@ -6,6 +6,16 @@
 # SPDX-License-Identifier: NASA-1.3
 #
 """Dorado sensitivity calculator"""
+try:
+    from functools import cache
+except ImportError:
+    # FIXME: remove once we require Python 3.9 and higher.
+    # functools.cache was added in Python 3.9, but is implemented using
+    # lru_cache with a specific configuration. For our purposes of caching a
+    # function that takes no arguments, functools.lru_cache can be used
+    # interchangeably.
+    from functools import lru_cache as cache
+
 from astropy.stats import signal_to_noise_oir_ccd
 from astropy import units as u
 import numpy as np
@@ -34,7 +44,66 @@ def _get_background_count_rate(coord, time, night):
     )
 
 
-def get_snr(source_spectrum, *, exptime, coord, time, night):
+@cache
+def _get_dust_query():
+    from dustmaps import planck
+    planck.fetch(which='GNILC')
+    return planck.PlanckGNILCQuery()
+
+
+@cache
+def _get_reddening_law():
+    from dust_extinction.parameter_averages import F19
+    from synphot import ReddeningLaw
+    return ReddeningLaw(F19())
+
+
+def _get_reddened_count_rate_scalar(source_spectrum, ebv):
+    reddening_law = _get_reddening_law()
+    extinction_curve = reddening_law.extinction_curve(
+        ebv, bandpasses.NUV_D.waveset)
+    return _get_count_rate(source_spectrum * extinction_curve)
+
+
+def _get_reddened_count_rate_vector(source_spectrum, ebv):
+    return u.Quantity([_get_reddened_count_rate_scalar(source_spectrum, _)
+                       for _ in np.ravel(ebv)]).reshape(np.shape(ebv))
+
+
+def _get_reddened_count_rate_slow(source_spectrum, ebv):
+    if np.isscalar(ebv):
+        return _get_reddened_count_rate_scalar(source_spectrum, ebv)
+    else:
+        return _get_reddened_count_rate_vector(source_spectrum, ebv)
+
+
+def _get_reddened_count_rate(source_spectrum, ebv):
+    steps = 100
+    ebv_min = 0.0
+    ebv_max = 50.0
+    if np.size(ebv) < steps:
+        return _get_reddened_count_rate_slow(source_spectrum, ebv)
+    else:
+        from scipy.interpolate import interp1d
+        x = np.linspace(ebv_min, ebv_max, steps)
+        y = _get_reddened_count_rate_slow(source_spectrum, x)
+        unit = y.unit
+        y = np.log(y.value)
+        interp = interp1d(x, y, kind='cubic', assume_sorted=True,
+                          bounds_error=False, fill_value=np.inf)
+        return np.exp(interp(ebv)) * unit
+
+
+def _get_source_count_rate(source_spectrum, coord, redden):
+    if redden:
+        dust_query = _get_dust_query()
+        ebv = dust_query(coord)
+        return _get_reddened_count_rate(source_spectrum, ebv)
+    else:
+        return _get_count_rate(source_spectrum)
+
+
+def get_snr(source_spectrum, *, exptime, coord, time, night, redden=False):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -50,6 +119,8 @@ def get_snr(source_spectrum, *, exptime, coord, time, night):
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
+    redden : bool
+        Whether to apply Milky Way extinction to the source spectrum
 
     Returns
     -------
@@ -58,7 +129,8 @@ def get_snr(source_spectrum, *, exptime, coord, time, night):
     """
     return signal_to_noise_oir_ccd(
         exptime,
-        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
+        constants.APERTURE_CORRECTION * _get_source_count_rate(
+            source_spectrum, coord, redden),
         _get_background_count_rate(coord, time, night),
         constants.DARK_NOISE,
         constants.READ_NOISE,
@@ -127,7 +199,7 @@ def _exptime_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / c1 * (x + np.sqrt(np.square(x) + 4 * c3 / snr2))
 
 
-def get_exptime(source_spectrum, *, snr, coord, time, night):
+def get_exptime(source_spectrum, *, snr, coord, time, night, redden=False):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -143,6 +215,8 @@ def get_exptime(source_spectrum, *, snr, coord, time, night):
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
+    redden : bool
+        Whether to apply Milky Way extinction to the source spectrum
 
     Returns
     -------
@@ -151,7 +225,8 @@ def get_exptime(source_spectrum, *, snr, coord, time, night):
     """
     return _exptime_for_signal_to_noise_oir_ccd(
         snr,
-        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
+        constants.APERTURE_CORRECTION * _get_source_count_rate(
+            source_spectrum, coord, redden),
         _get_background_count_rate(coord, time, night),
         constants.DARK_NOISE,
         constants.READ_NOISE,
