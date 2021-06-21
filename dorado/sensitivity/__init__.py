@@ -37,11 +37,13 @@ def _get_count_rate(source_spectrum):
 def _get_background_count_rate(coord, time, night):
     airglow_scale = backgrounds.get_airglow_scale(night)
     zodi_scale = backgrounds.get_zodiacal_light_scale(coord, time)
+    galactic_scale1, galactic_scale2 = backgrounds.get_galactic_scales(coord)
     night = np.asarray(night)
     return np.square(constants.PLATE_SCALE.to_value(u.arcsec / u.pix)) * (
         _get_count_rate(backgrounds.high_zodiacal_light) * zodi_scale +
         _get_count_rate(backgrounds.day_airglow) * airglow_scale +
-        _get_count_rate(backgrounds.get_galactic(coord[..., np.newaxis]))
+        _get_count_rate(backgrounds.galactic1) * galactic_scale1 +
+        _get_count_rate(backgrounds.galactic2) * galactic_scale2
     )
 
 

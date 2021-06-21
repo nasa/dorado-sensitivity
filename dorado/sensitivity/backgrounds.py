@@ -14,12 +14,14 @@ from astropy import units as u
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from synphot import Empirical1D, GaussianFlux1D, PowerLawFlux1D, SourceSpectrum
+from synphot.models import ConstFlux1D
 from synphot.units import PHOTLAM
 
 from . import data
 
 __all__ = ('get_zodiacal_light_scale', 'high_zodiacal_light', 'day_airglow',
-           'get_airglow_scale', 'get_galactic')
+           'get_airglow_scale', 'galactic1', 'galactic2',
+           'get_galactic_scales')
 
 
 def _get_zodi_angular_interp():
@@ -141,7 +143,19 @@ def get_airglow_scale(night):
     return np.where(night, 1e-2, 1)
 
 
-def get_galactic(coord):
+galactic1 = SourceSpectrum(
+    ConstFlux1D,
+    amplitude=1 * PHOTLAM * u.steradian**-1 * u.arcsec**2)
+
+
+galactic2 = SourceSpectrum(
+    PowerLawFlux1D,
+    x_0=1528*u.angstrom,
+    alpha=-1,
+    amplitude=1 * PHOTLAM * u.steradian**-1 * u.arcsec**2)
+
+
+def get_galactic_scales(coord):
     """Get the Galactic diffuse emission, normalized to 1 square arcsecond.
 
     Estimate the Galactic diffuse emission based on the cosecant fits from
@@ -177,18 +191,18 @@ def get_galactic(coord):
 
     fuv = fuv_a + fuv_b * csc
     nuv = nuv_a + nuv_b * csc
-    surf_bright_unit = PHOTLAM * u.steradian**-1 * u.arcsec**2
 
     # GALEX filter effective wavelengths in angstroms from
     # http://www.galex.caltech.edu/researcher/techdoc-ch1.html#3
     fuv_wave = 1528
     nuv_wave = 2271
 
-    return SourceSpectrum(
-        PowerLawFlux1D,
-        amplitude=fuv * surf_bright_unit,
-        x_0=fuv_wave * u.angstrom,
-        alpha=-np.log(nuv / fuv) / np.log(nuv_wave / fuv_wave))
+    # return SourceSpectrum(
+    #     PowerLawFlux1D,
+    #     amplitude=fuv * surf_bright_unit,
+    #     x_0=fuv_wave * u.angstrom,
+    #     alpha=-np.log(nuv / fuv) / np.log(nuv_wave / fuv_wave))
+    return fuv, (nuv - fuv) / (nuv_wave - fuv_wave)
 
 
 del _get_zodi_angular_interp, table
