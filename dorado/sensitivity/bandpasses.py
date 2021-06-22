@@ -14,7 +14,7 @@ from importlib import resources
 from . import constants
 from . import data
 
-__all__ = ('NUV_D',)
+__all__ = ('NUV_D', 'NUV_D_CBE', 'NUV_D_BASELINE', 'NUV_D_THRESHOLD')
 
 
 def _get_bandpass(name):
@@ -25,4 +25,14 @@ def _get_bandpass(name):
                            lookup_table=t['effective_area'] / constants.AREA)
 
 
-NUV_D = _get_bandpass('nuv_d')
+NUV_D_CBE = _get_bandpass('nuv_d_cbe')
+"""Effective area curve current best estimate."""
+
+NUV_D_BASELINE = _get_bandpass('nuv_d_baseline')
+"""Effective area curve for the baseline mission."""
+
+NUV_D_THRESHOLD = _get_bandpass('nuv_d_threshold')
+"""Effective area curve for the threshold mission."""
+
+NUV_D = NUV_D_CBE
+"""Default effective area curve (same as current best estimate)."""

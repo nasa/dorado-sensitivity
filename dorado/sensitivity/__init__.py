@@ -29,21 +29,25 @@ from . import constants
 __all__ = ('get_snr', 'get_limmag', 'get_exptime')
 
 
-def _get_count_rate(source_spectrum):
-    flux = (source_spectrum * bandpasses.NUV_D).integrate(flux_unit=PHOTLAM)
+def _get_count_rate(source_spectrum, bandpass):
+    flux = (source_spectrum * bandpass).integrate(flux_unit=PHOTLAM)
     return flux * (constants.AREA / u.ph)
 
 
-def _get_background_count_rate(coord, time, night):
+def _get_background_count_rate(bandpass, coord, time, night):
     airglow_scale = backgrounds.get_airglow_scale(night)
     zodi_scale = backgrounds.get_zodiacal_light_scale(coord, time)
     galactic_scale1, galactic_scale2 = backgrounds.get_galactic_scales(coord)
     night = np.asarray(night)
     return np.square(constants.PLATE_SCALE.to_value(u.arcsec / u.pix)) * (
-        _get_count_rate(backgrounds.high_zodiacal_light) * zodi_scale +
-        _get_count_rate(backgrounds.day_airglow) * airglow_scale +
-        _get_count_rate(backgrounds.galactic1) * galactic_scale1 +
-        _get_count_rate(backgrounds.galactic2) * galactic_scale2
+        _get_count_rate(backgrounds.high_zodiacal_light,
+                        bandpass) * zodi_scale +
+        _get_count_rate(backgrounds.day_airglow,
+                        bandpass) * airglow_scale +
+        _get_count_rate(backgrounds.galactic1,
+                        bandpass) * galactic_scale1 +
+        _get_count_rate(backgrounds.galactic2,
+                        bandpass) * galactic_scale2
     )
 
 
@@ -61,35 +65,35 @@ def _get_reddening_law():
     return ReddeningLaw(F19())
 
 
-def _get_reddened_count_rate_scalar(source_spectrum, ebv):
+def _get_reddened_count_rate_scalar(source_spectrum, bandpass, ebv):
     reddening_law = _get_reddening_law()
-    extinction_curve = reddening_law.extinction_curve(
-        ebv, bandpasses.NUV_D.waveset)
-    return _get_count_rate(source_spectrum * extinction_curve)
+    extinction_curve = reddening_law.extinction_curve(ebv, bandpass.waveset)
+    return _get_count_rate(source_spectrum * extinction_curve, bandpass)
 
 
-def _get_reddened_count_rate_vector(source_spectrum, ebv):
-    return u.Quantity([_get_reddened_count_rate_scalar(source_spectrum, _)
-                       for _ in np.ravel(ebv)]).reshape(np.shape(ebv))
+def _get_reddened_count_rate_vector(source_spectrum, bandpass, ebv):
+    return u.Quantity([
+        _get_reddened_count_rate_scalar(source_spectrum, bandpass, _)
+        for _ in np.ravel(ebv)]).reshape(np.shape(ebv))
 
 
-def _get_reddened_count_rate_slow(source_spectrum, ebv):
+def _get_reddened_count_rate_slow(source_spectrum, bandpass, ebv):
     if np.isscalar(ebv):
-        return _get_reddened_count_rate_scalar(source_spectrum, ebv)
+        return _get_reddened_count_rate_scalar(source_spectrum, bandpass, ebv)
     else:
-        return _get_reddened_count_rate_vector(source_spectrum, ebv)
+        return _get_reddened_count_rate_vector(source_spectrum, bandpass, ebv)
 
 
-def _get_reddened_count_rate(source_spectrum, ebv):
+def _get_reddened_count_rate(source_spectrum, bandpass, ebv):
     steps = 100
     ebv_min = 0.0
     ebv_max = 50.0
     if np.size(ebv) < steps:
-        return _get_reddened_count_rate_slow(source_spectrum, ebv)
+        return _get_reddened_count_rate_slow(source_spectrum, bandpass, ebv)
     else:
         from scipy.interpolate import interp1d
         x = np.linspace(ebv_min, ebv_max, steps)
-        y = _get_reddened_count_rate_slow(source_spectrum, x)
+        y = _get_reddened_count_rate_slow(source_spectrum, bandpass, x)
         unit = y.unit
         y = np.log(y.value)
         interp = interp1d(x, y, kind='cubic', assume_sorted=True,
@@ -97,16 +101,17 @@ def _get_reddened_count_rate(source_spectrum, ebv):
         return np.exp(interp(ebv)) * unit
 
 
-def _get_source_count_rate(source_spectrum, coord, redden):
+def _get_source_count_rate(source_spectrum, bandpass, coord, redden):
     if redden:
         dust_query = _get_dust_query()
         ebv = dust_query(coord)
-        return _get_reddened_count_rate(source_spectrum, ebv)
+        return _get_reddened_count_rate(source_spectrum, bandpass, ebv)
     else:
-        return _get_count_rate(source_spectrum)
+        return _get_count_rate(source_spectrum, bandpass)
 
 
-def get_snr(source_spectrum, *, exptime, coord, time, night, redden=False):
+def get_snr(source_spectrum, *, exptime, coord, time, night, redden=False,
+            bandpass=None):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -124,17 +129,21 @@ def get_snr(source_spectrum, *, exptime, coord, time, night, redden=False):
         for estimating airglow
     redden : bool
         Whether to apply Milky Way extinction to the source spectrum
+    bandpass : synphot.SpecralElement
+        Bandpass. Default: Dorado current baseline estimate.
 
     Returns
     -------
     float
         The signal to noise ratio
     """
+    if bandpass is None:
+        bandpass = bandpasses.NUV_D
     return signal_to_noise_oir_ccd(
         exptime,
         constants.APERTURE_CORRECTION * _get_source_count_rate(
-            source_spectrum, coord, redden),
-        _get_background_count_rate(coord, time, night),
+            source_spectrum, bandpass, coord, redden),
+        _get_background_count_rate(bandpass, coord, time, night),
         constants.DARK_NOISE,
         constants.READ_NOISE,
         constants.NPIX
@@ -151,7 +160,8 @@ def _amp_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / signal * (1 + np.sqrt(1 + 4 * noise2 / snr2))
 
 
-def get_limmag(source_spectrum, *, snr, exptime, coord, time, night):
+def get_limmag(source_spectrum, *, snr, exptime, coord, time, night,
+               bandpass=None):
     """Get the limiting magnitude for a given SNR.
 
     Parameters
@@ -169,20 +179,26 @@ def get_limmag(source_spectrum, *, snr, exptime, coord, time, night):
     night : bool
         Whether the observation occurs on the day or night side of the Earth,
         for estimating airglow
+    bandpass : synphot.SpecralElement
+        Bandpass. Default: Dorado current baseline estimate.
 
     Returns
     -------
     astropy.units.Quantity
         The AB magnitude of the source
     """
-    mag0 = Observation(source_spectrum, bandpasses.NUV_D).effstim(
+    if bandpass is None:
+        bandpass = bandpasses.NUV_D
+
+    mag0 = Observation(source_spectrum, bandpass).effstim(
         u.ABmag, area=constants.AREA)
 
     result = _amp_for_signal_to_noise_oir_ccd(
         snr,
         exptime,
-        constants.APERTURE_CORRECTION * _get_count_rate(source_spectrum),
-        _get_background_count_rate(coord, time, night),
+        constants.APERTURE_CORRECTION * _get_count_rate(
+            source_spectrum, bandpass),
+        _get_background_count_rate(bandpass, coord, time, night),
         constants.DARK_NOISE,
         constants.READ_NOISE,
         constants.NPIX
@@ -202,7 +218,8 @@ def _exptime_for_signal_to_noise_oir_ccd(
     return 0.5 * snr2 / c1 * (x + np.sqrt(np.square(x) + 4 * c3 / snr2))
 
 
-def get_exptime(source_spectrum, *, snr, coord, time, night, redden=False):
+def get_exptime(source_spectrum, *, snr, coord, time, night, redden=False,
+                bandpass=None):
     """Calculate the SNR of an observation of a point source with Dorado.
 
     Parameters
@@ -220,17 +237,21 @@ def get_exptime(source_spectrum, *, snr, coord, time, night, redden=False):
         for estimating airglow
     redden : bool
         Whether to apply Milky Way extinction to the source spectrum
+    bandpass : synphot.SpecralElement
+        Bandpass. Default: Dorado current baseline estimate.
 
     Returns
     -------
     astropy.units.Quantity
         The exposure time
     """
+    if bandpass is None:
+        bandpass = bandpasses.NUV_D
     return _exptime_for_signal_to_noise_oir_ccd(
         snr,
         constants.APERTURE_CORRECTION * _get_source_count_rate(
-            source_spectrum, coord, redden),
-        _get_background_count_rate(coord, time, night),
+            source_spectrum, bandpass, coord, redden),
+        _get_background_count_rate(bandpass, coord, time, night),
         constants.DARK_NOISE,
         constants.READ_NOISE,
         constants.NPIX
