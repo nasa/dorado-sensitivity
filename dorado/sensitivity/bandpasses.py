@@ -14,7 +14,7 @@ from importlib import resources
 from . import constants
 from . import data
 
-__all__ = ('NUV_D', 'NUV_D_CBE', 'NUV_D_BASELINE', 'NUV_D_THRESHOLD')
+__all__ = ('NUV_D', 'NUV_D_CBE', 'NUV_D_BASELINE', 'NUV_D_THRESHOLD', 'D1', 'D2')
 
 
 def _get_bandpass(name):
@@ -36,3 +36,10 @@ NUV_D_THRESHOLD = _get_bandpass('nuv_d_threshold')
 
 NUV_D = NUV_D_CBE
 """Default effective area curve (same as current best estimate)."""
+
+D1 = _get_bandpass('D1')
+"""Old bandpass D1."""
+
+D2 = _get_bandpass('D2')
+"""Old bandpass D2."""
+
